@@ -9,4 +9,3 @@ docker build -t <image> .
 ```
 docker run --name webapp -p 8000:8000 <image_id>
 ```
-3. Browse http://127.0.0.1:8000/
