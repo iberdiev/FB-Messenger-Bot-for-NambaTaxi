@@ -1,4 +1,4 @@
-"""fbmessenger_nambataxibot URL Configuration
+"""fb_chatbot_nambataxi URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/2.0/topics/http/urls/
@@ -20,4 +20,3 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('chat.urls')),
 ]
-

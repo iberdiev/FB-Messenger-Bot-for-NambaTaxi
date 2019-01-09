@@ -3,7 +3,7 @@ import os
 import sys
 
 if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "fbmessenger_nambataxibot.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "fb_chatbot_nambataxi.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

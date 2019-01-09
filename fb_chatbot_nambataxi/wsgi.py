@@ -1,5 +1,5 @@
 """
-WSGI config for fbmessenger_nambataxibot project.
+WSGI config for fb_chatbot_nambataxi project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "fbmessenger_nambataxibot.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "fb_chatbot_nambataxi.settings")
 
 application = get_wsgi_application()

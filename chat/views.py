@@ -1,16 +1,22 @@
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.views import generic
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-import json, pprint, requests, random, re
+import json, requests
 from django.views.generic import View
 from . import logic
 from .models import Order
 
-FB_ENDPOINT = 'https://graph.facebook.com/v3.2/'
-PAGE_ACCESS_TOKEN = "???"
-VERIFY_TOKEN = "???"
+
+
+VERIFY_TOKEN = ""
+FB_ENDPOINT = ""
+PAGE_ACCESS_TOKEN = ""
+
+partner_id = 15
+server_token = '5ooc6jxnj8kdLXphK43tQk5Eoxo9LEIx'
+namba_api_url = 'https://partners.staging.swift.kg/api/v1/'
 
 class bview(generic.View):
 
@@ -43,38 +49,71 @@ class bview(generic.View):
                         parse_and_send_fb_message(fb_user_id, fb_user_txt)
         return HttpResponse("Success", status=200)
 
-
 def parse_and_send_fb_message(fbid, message):
-# Remove all punctuations, lower case the text and split it based on space
-#    tokens = re.sub(r"[^a-zA-Z0-9\s]",' ',recevied_message).lower().split()
+
     msg = None
-# Check the message, and sends back appropriate message
+
     if message in logic.GOT_MESSAGE_TO_RESPOND:
         msg = logic.BOT_RESPONSE_COMMANDS[message]
-# Checking if the sent message was mobile phone (may come up with better logic)
+
     elif message.startswith('+') and len(message)==13:
         msg = logic.BOT_RESPONSE_COMMANDS['BOT_ASK_FARE']
-# Making sure only one model is saved for one FB account
         if len(Order.objects.all().filter(ip_as_id = fbid)) == 1:
             phone_save = Order.objects.get(ip_as_id = fbid)
             phone_save.phone_number = message
             phone_save.save()
+
         else:
             phone_save = Order(ip_as_id = fbid, phone_number = message)
             phone_save.save()
-# Saves the tariff of the order
+
     elif message in ['standart','big','comf']:
+
+
         order = Order.objects.get(ip_as_id = fbid)
         order.tariff = message
         order.save()
         msg = logic.BOT_RESPONSE_COMMANDS['BOT_ASK_ADDRESS']
         response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-# Saves address (must start with 'адрес', have not found better solution yet
+
+
     elif message.startswith('адрес'):
+
+        address = Order.objects.get(ip_as_id = fbid)
+        address.address = message
+        address.save()
+########## API - CREATING AN ORDER ###############
+        order = Order.objects.get(ip_as_id = fbid)
+        tariff = order.tariff
+        phone_number = order.phone_number
+        address = order.address
+
+        if tariff == 'standart':
+            tariff_id = 1
+        elif tariff == 'big':
+            tariff_id = 11
+        elif tariff == 'comf':
+            tariff_id = 21
+
+        post_data = {
+            'partner_id': partner_id,
+            'server_token': server_token,
+            'phone_number': phone_number,
+            'address': address,
+            'fare': tariff_id
+        }
+
+        response = requests.post(url = "https://partners.staging.swift.kg/api/v1/requests/", data=post_data)
+#############################################
+        if response.json()['message'] == 'success':
+            order.order_id = response.json()['order_id']
+            order.save()
+
         msg = logic.BOT_RESPONSE_COMMANDS['BOT_MESSAGE_MY_ORDER_STATUS']
         address = Order.objects.get(ip_as_id = fbid)
         address.address = message
         address.save()
+
         response_msg = json.dumps({"recipient":{"id":fbid}, "message":{
     "attachment":{
       "type":"template",
@@ -97,27 +136,52 @@ def parse_and_send_fb_message(fbid, message):
             "title":"Отменить мой заказ",
             "payload":"cancel"
           }]}}}})
-# If 'get_status' button is pressed, sends value of status
     elif message == 'get_status':
-        msg = Order.objects.get(ip_as_id = fbid).status
+########## API - GETTING STATUS OF ORDER ########################
+        post_data = {
+            'partner_id':partner_id,
+            'server_token':server_token,
+        }
+        order_id = Order.objects.get(ip_as_id = fbid).order_id
+        response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
+        msg = response.json()['status']
+############################################################
+
         response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-# Sends cars nearby (haven't developed an algorithm, just for the sake of convenience)
     elif message == 'cars_nearby':
-        msg = 4
+########## API - GETTING NUMBER OF CARS NEARBY #############
+        address = Order.objects.get(ip_as_id = fbid).address
+        post_data = {
+            'partner_id':partner_id,
+            'server_token':server_token,
+            'address': address
+        }
+        msg = requests.post(url = 'https://partners.staging.swift.kg/api/v1/drivers/nearest/', data=post_data).json()['drivers']
+############################################################
+
         response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-# Changes value of status to "cancelled"
     elif message == 'cancel':
+########## API - CANCELLING ORDER #############
+
+        post_data = {
+            'partner_id':partner_id,
+            'server_token':server_token,
+        }
+        order_id = Order.objects.get(ip_as_id = fbid).order_id
+        msg = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/cancel/'.format(order_id), data=post_data).json()['message']
+###############################################
+
         cancel = Order.objects.get(ip_as_id = fbid)
-        msg = 'Заказ был отменён!'
+        # msg = 'Заказ был отменён!'
         cancel.status = msg
         cancel.save()
         response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
 
-# If there is something to reflect, bot sends message
     if msg is not None:
         endpoint = f"{FB_ENDPOINT}/me/messages?access_token={PAGE_ACCESS_TOKEN}"
-# Start message
+
         if message == 'start':
+
             response_msg = json.dumps({"recipient":{"id":fbid}, "message":{
     "attachment":{
       "type":"template",
@@ -135,13 +199,12 @@ def parse_and_send_fb_message(fbid, message):
             "title":"Тарифы",
             "payload":"tariff"
           }]}}}})
-# Sends informations on tariffs
+
         elif message == 'tariff':
             response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-# Asks phone number, after button was clicked
         elif message =='BOT_ASK_PHONE':
             response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-# If the message was sent phone number, than sends back 3 buttons with tariffs
+
         elif message.startswith('+') and len(message)==13:
 
             response_msg = json.dumps({"recipient":{"id":fbid}, "message":{
@@ -166,6 +229,7 @@ def parse_and_send_fb_message(fbid, message):
             "title":"Комфорт",
             "payload":"comf"
           }]}}}})
+
         status = requests.post(
             endpoint,
             headers={"Content-Type": "application/json"},
@@ -173,7 +237,3 @@ def parse_and_send_fb_message(fbid, message):
         print(status.json())
         return status.json()
     return None
-
-
-
-

@@ -7,6 +7,7 @@ app_name ='bot_webhooks'
 
 urlpatterns = [
     re_path(r'^<webhook_endpoint>/$', bview.as_view(), name = 'webhook'),
+
 ]
 
 

@@ -1,6 +1,6 @@
-myvenv
+venv
 *.pyc
-trash/__pycache__
+chat/__pychache__
 chat/migrations/__pycache__
-chat/__pycache__/
-chat/templates
+fb_chatbot_nambataxi/__pycache__/
+
