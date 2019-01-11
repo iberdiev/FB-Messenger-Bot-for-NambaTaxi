@@ -244,18 +244,14 @@ def send_status_update():
         # response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
         # if response['status'] == 'Принят':
         ASDF = 3
-        if ASDF==3:
-            change_status = orders[order]
-            change_status.status = "Водитель найден"
-            change_status.save()
-            # msg = "Driver:{}, phone:{}".format(response.json()['driver']['name'],
-            #                                    response.json()['driver']['phone_number'])
-            # endpoint = f"{FB_ENDPOINT}/me/messages?access_token={PAGE_ACCESS_TOKEN}"
-            # response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-            # status = requests.post(
-            #     endpoint,
-            #     headers={"Content-Type": "application/json"},
-            #     data=response_msg)
-            # print(status.json())
-            # return status.json()
+        msg = "Driver:{}, phone:{}".format(response.json()['driver']['name'],
+                                           response.json()['driver']['phone_number'])
+        endpoint = f"{FB_ENDPOINT}/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+        response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
+        status = requests.post(
+            endpoint,
+            headers={"Content-Type": "application/json"},
+            data=response_msg)
+        print(status.json())
+        return status.json()
     return None
