@@ -6,4 +6,4 @@ fb_chatbot_nambataxi/__pycache__/
 celerybeat.pid
 celerybeat-schedule.db
 dump.rdb
-
+celerybeat-schedule
