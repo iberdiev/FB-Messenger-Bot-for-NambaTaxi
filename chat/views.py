@@ -241,17 +241,19 @@ def send_status_update():
             'server_token':server_token,
         }
         order_id = Order.objects.get(ip_as_id = fbid).order_id
-        # response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
-        # if response['status'] == 'Принят':
-        ASDF = 3
-        msg = "Driver:{}, phone:{}".format(response.json()['driver']['name'],
-                                           response.json()['driver']['phone_number'])
-        endpoint = f"{FB_ENDPOINT}/me/messages?access_token={PAGE_ACCESS_TOKEN}"
-        response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
-        status = requests.post(
-            endpoint,
-            headers={"Content-Type": "application/json"},
-            data=response_msg)
-        print(status.json())
-        return status.json()
+        response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
+        if response['status'] == 'Принят':
+            change_status = orders[order]
+            change_status.status = "Водитель найден"
+            change_status.save()
+            msg = "Driver:{}, phone:{}".format(response.json()['driver']['name'],
+                                               response.json()['driver']['phone_number'])
+            endpoint = f"{FB_ENDPOINT}/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+            response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
+            status = requests.post(
+                endpoint,
+                headers={"Content-Type": "application/json"},
+                data=response_msg)
+            print(status.json())
+            return status.json()
     return None
