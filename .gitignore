@@ -3,4 +3,7 @@ venv
 chat/__pychache__
 chat/migrations/__pycache__
 fb_chatbot_nambataxi/__pycache__/
+celerybeat.pid
+celerybeat-schedule.db
+dump.rdb
 

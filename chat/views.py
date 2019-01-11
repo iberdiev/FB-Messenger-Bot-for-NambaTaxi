@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views import generic
@@ -7,13 +8,11 @@ import json, requests
 from django.views.generic import View
 from . import logic
 from .models import Order
-
-
+from celery import task
 
 VERIFY_TOKEN = ""
 FB_ENDPOINT = ""
 PAGE_ACCESS_TOKEN = ""
-
 partner_id = 15
 server_token = '5ooc6jxnj8kdLXphK43tQk5Eoxo9LEIx'
 namba_api_url = 'https://partners.staging.swift.kg/api/v1/'
@@ -136,18 +135,11 @@ def parse_and_send_fb_message(fbid, message):
             "title":"Отменить мой заказ",
             "payload":"cancel"
           }]}}}})
-    elif message == 'get_status':
-########## API - GETTING STATUS OF ORDER ########################
-        post_data = {
-            'partner_id':partner_id,
-            'server_token':server_token,
-        }
-        order_id = Order.objects.get(ip_as_id = fbid).order_id
-        response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
-        msg = response.json()['status']
-############################################################
 
+    elif message == 'get_status':
+        msg = Order.objects.get(ip_as_id = fbid).status
         response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
+
     elif message == 'cars_nearby':
 ########## API - GETTING NUMBER OF CARS NEARBY #############
         address = Order.objects.get(ip_as_id = fbid).address
@@ -236,4 +228,34 @@ def parse_and_send_fb_message(fbid, message):
             data=response_msg)
         print(status.json())
         return status.json()
+    return None
+
+@task()
+def send_status_update():
+    orders = Order.objects.all().filter(status="Ищем водителей")
+    for order in range(len(orders)):
+        msg = None
+        fbid = orders[order].ip_as_id
+        post_data = {
+            'partner_id':partner_id,
+            'server_token':server_token,
+        }
+        order_id = Order.objects.get(ip_as_id = fbid).order_id
+        # response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
+        # if response['status'] == 'Принят':
+        ASDF = 3
+        if ASDF==3:
+            change_status = orders[order]
+            change_status.status = "Водитель найден"
+            change_status.save()
+            # msg = "Driver:{}, phone:{}".format(response.json()['driver']['name'],
+            #                                    response.json()['driver']['phone_number'])
+            # endpoint = f"{FB_ENDPOINT}/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+            # response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":msg}})
+            # status = requests.post(
+            #     endpoint,
+            #     headers={"Content-Type": "application/json"},
+            #     data=response_msg)
+            # print(status.json())
+            # return status.json()
     return None

@@ -1,0 +1,27 @@
+version: '3'
+services:
+  redis:
+    image: "redis:latest"
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./:/fb_chatbot_nambataxi
+  celery:
+    build: .
+    command: bash -c "celery -A fb_chatbot_nambataxi worker -l info"
+    volumes:
+      - ./:/fb_chatbot_nambataxi
+    depends_on:
+      - redis
+  celery-beat:
+    build: .
+    command: bash -c "celery -A fb_chatbot_nambataxi beat -l info"
+    volumes:
+      - ./:/fb_chatbot_nambataxi
+    depends_on:
+      - redis
