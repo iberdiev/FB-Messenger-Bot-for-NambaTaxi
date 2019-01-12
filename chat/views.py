@@ -241,7 +241,7 @@ def send_status_update():
             'server_token':server_token,
         }
         order_id = Order.objects.get(ip_as_id = fbid).order_id
-        response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{id}/'.format(order_id), data=post_data)
+        response = requests.post(url = 'https://partners.staging.swift.kg/api/v1/requests/{}/'.format(order_id), data=post_data)
         if response['status'] == 'Принят':
             change_status = orders[order]
             change_status.status = "Водитель найден"
